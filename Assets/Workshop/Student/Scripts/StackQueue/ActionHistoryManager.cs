@@ -18,6 +18,13 @@ namespace Solution
         public void SaveStateForUndo(Vector2 currentPosition)
         {
             // Only push a state if it's different from the last saved state 
+            undoStack.Push(currentPosition);
+
+            if (redoStack.Count > 0)
+            {
+                redoStack.Clear();
+                Debug.Log("Stack Cleared");
+            }
             // (optional optimization, but good practice for movement)
         
         }
@@ -25,13 +32,29 @@ namespace Solution
         /// </summary>
         public void UndoLastMove(OOPPlayer player)
         {
+            if (undoStack.Count <= 1)
+            {
+                return;
+            }
             // Need at least two states: the current one, and the one to revert to.
-           
+            Vector2 currentState = undoStack.Pop();
+            redoStack.Push(currentState);
+            
+            Vector2 previousState = undoStack.Peek();
+            player.UpdatePosition((int)previousState.x , (int)previousState.y);
+            Debug.Log("Undo Last Move");
         }
         public void RedoLastMove(OOPPlayer player)
         {
-            // Need at least two states: the current one, and the one to revert to.
-
+            if (redoStack.Count == 0)
+            {
+                return;
+            }
+            // Need at least two states: the current one, and the one to revert to.]
+            Vector2 ststeToRedo = redoStack.Pop();
+            undoStack.Push(ststeToRedo);
+            player.UpdatePosition((int)ststeToRedo.x , (int)ststeToRedo.y);
+            Debug.Log("Redo Last Move");
         }
         #endregion
 
@@ -41,7 +64,20 @@ namespace Solution
         {
             //create a sample sequence of moves
             // 1. prepare the Queue with the sequence of moves
+            Vector2[] moves =
+            {
+                Vector2.right,
+                Vector2.right,
+                Vector2.up,
+                Vector2.left,
+                Vector2.up,
+                Vector2.down,
+            };
 
+            foreach (Vector2 move in moves)
+            {
+                autoMoveQueue.Enqueue(move);
+            }
             // Start the coroutine to process the auto-move sequence
             StartCoroutine(ProcessAutoMoveSequence(player));
         }
@@ -51,7 +87,12 @@ namespace Solution
             Debug.Log($"Auto-move sequence started with {autoMoveQueue.Count} steps.");
 
             // 2. process the Queue step-by-step
-            yield return new WaitForSeconds(0.5f); // Initial delay before starting
+            while (autoMoveQueue.Count > 0)
+            {
+                Vector2 nextDirection = autoMoveQueue.Dequeue();
+                player.Move(nextDirection);
+                yield return new WaitForSeconds(0.5f); // Initial delay before starting    
+            }
 
             player.isAutoMoving = false;
             Debug.Log("Auto-move sequence finished.");
@@ -61,4 +102,3 @@ namespace Solution
 
     }
 }
-
